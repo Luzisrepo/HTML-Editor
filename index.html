@@ -20,7 +20,8 @@
             --header-height: 60px;
             --footer-height: 40px;
             --actions-height: 50px;
-            --resizer-size: 8px;
+            --resizer-size: 10px;
+            --min-pane-size: 100px;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -151,13 +152,21 @@
             overflow: hidden;
         }
 
-        .editor-container {
+        .editor-column {
             display: flex;
             flex-direction: column;
             width: 60%;
+            min-width: 280px;
             background-color: var(--bg-secondary);
             border-right: 1px solid var(--border-color);
-            transition: width 0.3s ease;
+        }
+
+        .editor-pane {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 0;
+            min-height: var(--min-pane-size);
+            overflow: hidden;
         }
 
         .pane-header {
@@ -196,14 +205,6 @@
             color: var(--text-primary);
         }
 
-        .editor-pane {
-            position: relative;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
         .code-editor {
             width: 100%;
             height: 100%;
@@ -229,8 +230,9 @@
             background-color: var(--resizer-hover);
         }
 
-        .preview-container {
+        .preview-column {
             flex: 1;
+            min-width: 300px;
             display: flex;
             flex-direction: column;
             background-color: white;
@@ -314,12 +316,12 @@
                 flex-direction: column;
             }
 
-            .editor-container {
+            .editor-column {
                 width: 100%;
                 height: 60%;
             }
 
-            .preview-container {
+            .preview-column {
                 width: 100%;
                 height: 40%;
             }
@@ -385,6 +387,43 @@
             -moz-user-select: none;
             -ms-user-select: none;
         }
+
+        /* Code modal for Markdown view */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        .modal .card {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+        }
+
+        .modal .card header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        pre.code-block {
+            max-height: 60vh;
+            overflow: auto;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: var(--bg-primary);
+        }
     </style>
 </head>
 <body>
@@ -411,12 +450,13 @@
                     <span class="slider"></span>
                 </label>
             </div>
+            <button id="view-markdown">View Code (Markdown)</button>
         </div>
     </header>
 
     <main>
-        <div class="editor-container">
-            <div class="editor-pane">
+        <div class="editor-column" id="editorColumn">
+            <div class="editor-pane" id="pane-html" data-lang="html">
                 <div class="pane-header">
                     <div class="pane-title">HTML</div>
                     <div class="pane-controls">
@@ -426,9 +466,9 @@
                 <textarea class="code-editor" id="html-editor" placeholder="Enter your HTML here..."></textarea>
             </div>
             
-            <div class="horizontal-resizer" id="html-css-resizer"></div>
+            <div class="horizontal-resizer" data-resizer-for="pane-html"></div>
             
-            <div class="editor-pane">
+            <div class="editor-pane" id="pane-css" data-lang="css">
                 <div class="pane-header">
                     <div class="pane-title">CSS</div>
                     <div class="pane-controls">
@@ -438,9 +478,9 @@
                 <textarea class="code-editor" id="css-editor" placeholder="Enter your CSS here..."></textarea>
             </div>
             
-            <div class="horizontal-resizer" id="css-js-resizer"></div>
+            <div class="horizontal-resizer" data-resizer-for="pane-css"></div>
             
-            <div class="editor-pane">
+            <div class="editor-pane" id="pane-js" data-lang="js">
                 <div class="pane-header">
                     <div class="pane-title">JavaScript</div>
                     <div class="pane-controls">
@@ -451,9 +491,9 @@
             </div>
         </div>
         
-        <div class="vertical-resizer" id="editor-preview-resizer"></div>
+        <div class="vertical-resizer" id="editorPreviewResizer"></div>
         
-        <div class="preview-container">
+        <div class="preview-column" id="previewColumn">
             <div class="pane-header">
                 <div class="preview-header">Live Preview</div>
                 <div class="pane-controls">
@@ -476,6 +516,19 @@
         Dark mode default • © 2025 Live HTML Editor
     </footer>
 
+    <!-- Code Modal -->
+    <div class="modal" id="codeModal" role="dialog" aria-modal="true">
+        <div class="card">
+            <header>
+                <div style="font-weight:600;color:var(--text-primary)">Combined Code (Markdown)</div>
+                <div>
+                    <button id="closeModal">Close</button>
+                </div>
+            </header>
+            <pre class="code-block"><code id="modalCode" class="language-markup"></code></pre>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <script>
@@ -496,14 +549,19 @@
             const themeToggle = document.getElementById('theme-toggle');
             const templateSelect = document.getElementById('templates');
             
-            // Resizers
-            const htmlCssResizer = document.getElementById('html-css-resizer');
-            const cssJsResizer = document.getElementById('css-js-resizer');
-            const editorPreviewResizer = document.getElementById('editor-preview-resizer');
+            // New elements from the new code
+            const horizontalResizers = document.querySelectorAll('.horizontal-resizer');
+            const editorPreviewResizer = document.getElementById('editorPreviewResizer');
+            const editorColumn = document.getElementById('editorColumn');
+            const previewColumn = document.getElementById('previewColumn');
+            const viewMarkdownBtn = document.getElementById('view-markdown');
+            const codeModal = document.getElementById('codeModal');
+            const closeModal = document.getElementById('closeModal');
+            const modalCode = document.getElementById('modalCode');
             
             // State
             let debounceTimer;
-            const DEBOUNCE_DELAY = 200; // ms :cite[2]:cite[6]
+            const DEBOUNCE_DELAY = 200;
             let isResizing = false;
             let currentResizer = null;
             
@@ -882,7 +940,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // Update the preview iframe :cite[4]:cite[5]
+            // Update the preview iframe
             function updatePreview() {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
@@ -917,13 +975,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, DEBOUNCE_DELAY);
             }
             
-            // Copy the combined code to clipboard
-            function copyCode() {
+            // Build combined code
+            function buildCombined() {
                 const html = htmlEditor.value;
                 const css = cssEditor.value;
                 const js = jsEditor.value;
                 
-                const combinedCode = `<!DOCTYPE html>
+                return `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -935,8 +993,11 @@ document.addEventListener('DOMContentLoaded', function() {
     <script>${js}<\/script>
 </body>
 </html>`;
-                
-                navigator.clipboard.writeText(combinedCode)
+            }
+            
+            // Copy the combined code to clipboard
+            function copyCode() {
+                navigator.clipboard.writeText(buildCombined())
                     .then(() => {
                         const originalText = copyButton.textContent;
                         copyButton.textContent = 'Copied!';
@@ -952,25 +1013,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Download the combined code as HTML file
             function downloadHTML() {
-                const html = htmlEditor.value;
-                const css = cssEditor.value;
-                const js = jsEditor.value;
-                
-                const combinedCode = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exported HTML</title>
-    <style>${css}</style>
-</head>
-<body>
-    ${html}
-    <script>${js}<\/script>
-</body>
-</html>`;
-                
-                const blob = new Blob([combinedCode], { type: 'text/html' });
+                const blob = new Blob([buildCombined()], { type: 'text/html' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -1041,94 +1084,118 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // Resizable panes implementation :cite[1]
+            // New resizing system from the new code
             function initResizablePanes() {
-                const editorPanes = document.querySelectorAll('.editor-pane');
-                const resizers = document.querySelectorAll('.horizontal-resizer');
-                const verticalResizer = document.querySelector('.vertical-resizer');
-                const editorContainer = document.querySelector('.editor-container');
-                const previewContainer = document.querySelector('.preview-container');
+                // Utility: clamp
+                function clamp(v, min, max) {
+                    return Math.min(Math.max(v, min), max);
+                }
                 
-                // Horizontal resizing for editor panes
-                resizers.forEach(resizer => {
-                    resizer.addEventListener('mousedown', initResize);
+                // Horizontal resizing between editor panes
+                horizontalResizers.forEach(resizer => {
+                    resizer.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        resizer.setPointerCapture(e.pointerId);
+                        document.body.classList.add('resizing');
+                        
+                        const prev = resizer.previousElementSibling;
+                        const next = resizer.nextElementSibling;
+                        
+                        const prevRect = prev.getBoundingClientRect();
+                        const nextRect = next.getBoundingClientRect();
+                        const startY = e.clientY;
+                        const prevHeight = prevRect.height;
+                        const nextHeight = nextRect.height;
+                        
+                        function onMove(ev) {
+                            const delta = ev.clientY - startY;
+                            const newPrev = prevHeight + delta;
+                            const newNext = nextHeight - delta;
+                            const min = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--min-pane-size')) || 80;
+                            
+                            if (newPrev >= min && newNext >= min) {
+                                prev.style.flex = `0 0 ${newPrev}px`;
+                                next.style.flex = `0 0 ${newNext}px`;
+                            }
+                        }
+                        
+                        function onUp(evt) {
+                            resizer.releasePointerCapture(e.pointerId);
+                            document.body.classList.remove('resizing');
+                            window.removeEventListener('pointermove', onMove);
+                            window.removeEventListener('pointerup', onUp);
+                        }
+                        
+                        window.addEventListener('pointermove', onMove);
+                        window.addEventListener('pointerup', onUp);
+                    });
                 });
                 
                 // Vertical resizing between editor and preview
-                verticalResizer.addEventListener('mousedown', initVerticalResize);
-                
-                function initResize(e) {
-                    isResizing = true;
-                    currentResizer = e.target;
-                    document.body.classList.add('resizing');
-                    
-                    const prevPane = currentResizer.previousElementSibling;
-                    const nextPane = currentResizer.nextElementSibling;
-                    
-                    let prevHeight = parseInt(getComputedStyle(prevPane).height);
-                    let nextHeight = parseInt(getComputedStyle(nextPane).height);
-                    let startY = e.clientY;
-                    
-                    function resize(e) {
-                        if (!isResizing) return;
+                (function() {
+                    const resizer = editorPreviewResizer;
+                    resizer.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        resizer.setPointerCapture(e.pointerId);
+                        document.body.classList.add('resizing');
                         
-                        const delta = e.clientY - startY;
-                        const newPrevHeight = prevHeight + delta;
-                        const newNextHeight = nextHeight - delta;
+                        const startX = e.clientX;
+                        const editorRect = editorColumn.getBoundingClientRect();
+                        const previewRect = previewColumn.getBoundingClientRect();
+                        const editorWidth = editorRect.width;
+                        const previewWidth = previewRect.width;
+                        const parentRect = editorColumn.parentElement.getBoundingClientRect();
+                        const parentWidth = parentRect.width;
+                        const min = 300; // min width for either side
                         
-                        // Minimum height constraint
-                        if (newPrevHeight >= 100 && newNextHeight >= 100) {
-                            prevPane.style.height = `${newPrevHeight}px`;
-                            nextPane.style.height = `${newNextHeight}px`;
+                        function onMove(ev) {
+                            const delta = ev.clientX - startX;
+                            let newEditor = editorWidth + delta;
+                            let newPreview = previewWidth - delta;
+                            
+                            // clamp by min sizes and parent width
+                            newEditor = clamp(newEditor, min, parentWidth - min);
+                            newPreview = clamp(newPreview, min, parentWidth - min);
+                            
+                            // set as flex-basis percentages so responsive behavior remains intact
+                            const editorPct = (newEditor / parentWidth) * 100;
+                            const previewPct = (newPreview / parentWidth) * 100;
+                            editorColumn.style.flex = `0 0 ${editorPct}%`;
+                            previewColumn.style.flex = `0 0 ${previewPct}%`;
                         }
-                    }
-                    
-                    function stopResize() {
-                        isResizing = false;
-                        currentResizer = null;
-                        document.body.classList.remove('resizing');
-                        document.removeEventListener('mousemove', resize);
-                        document.removeEventListener('mouseup', stopResize);
-                    }
-                    
-                    document.addEventListener('mousemove', resize);
-                    document.addEventListener('mouseup', stopResize);
+                        
+                        function onUp(ev) {
+                            resizer.releasePointerCapture(e.pointerId);
+                            document.body.classList.remove('resizing');
+                            window.removeEventListener('pointermove', onMove);
+                            window.removeEventListener('pointerup', onUp);
+                        }
+                        
+                        window.addEventListener('pointermove', onMove);
+                        window.addEventListener('pointerup', onUp);
+                    });
+                })();
+            }
+            
+            // Modal: show combined code as Markdown
+            function openModal() {
+                // Build a fenced markdown block with HTML content inside triple backticks
+                const combined = buildCombined();
+                const fenced = '```html\n' + combined.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '\n```';
+                modalCode.textContent = fenced;
+                
+                // Prism highlight
+                if (window.Prism) {
+                    // mark as markup for better HTML highlighting inside the fenced block
+                    modalCode.className = 'language-markup';
+                    Prism.highlightElement(modalCode);
                 }
                 
-                function initVerticalResize(e) {
-                    isResizing = true;
-                    currentResizer = e.target;
-                    document.body.classList.add('resizing');
-                    
-                    let editorWidth = parseInt(getComputedStyle(editorContainer).width);
-                    let previewWidth = parseInt(getComputedStyle(previewContainer).width);
-                    let startX = e.clientX;
-                    
-                    function resize(e) {
-                        if (!isResizing) return;
-                        
-                        const delta = e.clientX - startX;
-                        const newEditorWidth = editorWidth + delta;
-                        const newPreviewWidth = previewWidth - delta;
-                        
-                        // Minimum width constraint
-                        if (newEditorWidth >= 300 && newPreviewWidth >= 300) {
-                            editorContainer.style.width = `${newEditorWidth}px`;
-                            previewContainer.style.width = `${newPreviewWidth}px`;
-                        }
-                    }
-                    
-                    function stopResize() {
-                        isResizing = false;
-                        currentResizer = null;
-                        document.body.classList.remove('resizing');
-                        document.removeEventListener('mousemove', resize);
-                        document.removeEventListener('mouseup', stopResize);
-                    }
-                    
-                    document.addEventListener('mousemove', resize);
-                    document.addEventListener('mouseup', stopResize);
-                }
+                codeModal.style.display = 'flex';
+            }
+            
+            function closeModalFn() { 
+                codeModal.style.display = 'none'; 
             }
             
             // Set up event listeners
@@ -1165,6 +1232,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 templateSelect.addEventListener('change', function() {
                     loadTemplate(this.value);
+                });
+                
+                // Modal events
+                viewMarkdownBtn.addEventListener('click', openModal);
+                closeModal.addEventListener('click', closeModalFn);
+                codeModal.addEventListener('click', (e) => { 
+                    if (e.target === codeModal) closeModalFn(); 
                 });
             }
             
