@@ -3,105 +3,453 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live HTML Editor & Previewer — Fixed Resizing</title>
+    <title>Live HTML Editor & Previewer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
-        :root{
+        :root {
             --bg-primary: #1a1a1a;
             --bg-secondary: #2d2d2d;
             --bg-tertiary: #3d3d3d;
             --text-primary: #f0f0f0;
             --text-secondary: #aaaaaa;
             --accent-color: #646cff;
+            --accent-hover: #535bf2;
             --border-color: #444;
             --resizer-color: #555;
             --resizer-hover: #646cff;
             --header-height: 60px;
             --footer-height: 40px;
             --actions-height: 50px;
-            --resizer-size: 10px; /* slightly larger for pointer ease */
+            --resizer-size: 10px;
             --min-pane-size: 100px;
         }
 
-        *{box-sizing:border-box;margin:0;padding:0}
-        html,body{height:100%}
-        body{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background:var(--bg-primary);
-            color:var(--text-primary);
-            display:flex;flex-direction:column;height:100vh;overflow:hidden;
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
         }
 
-        header{height:var(--header-height);background:var(--bg-secondary);display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border-color)}
-        .logo{font-weight:700;color:var(--accent-color)}
-        .controls{display:flex;gap:12px;align-items:center}
-        .font-size-control input{width:64px;padding:4px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-tertiary);color:var(--text-primary)}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        main{flex:1;display:flex;overflow:hidden}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-        /* Editor column (left) */
-        .editor-column{display:flex;flex-direction:column;width:60%;min-width:280px;background:var(--bg-secondary);border-right:1px solid var(--border-color);}
-        .editor-pane{display:flex;flex-direction:column;flex:1 1 0;min-height:var(--min-pane-size);overflow:hidden}
-        .pane-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-color)}
-        .pane-title{font-weight:600}
-        .pane-controls button{background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:4px 8px;border-radius:4px}
-        .pane-controls button:hover{color:var(--text-primary);background:transparent}
+        header {
+            height: var(--header-height);
+            background-color: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
 
-        textarea.code-editor{width:100%;height:100%;padding:12px;background:transparent;border:none;color:var(--text-primary);resize:none;font-family:Consolas,monaco,monospace;font-size:14px;line-height:1.5;overflow:auto}
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
 
-        /* horizontal resizer between editor panes */
-        .horizontal-resizer{height:var(--resizer-size);background:var(--resizer-color);cursor:row-resize;display:block}
-        .horizontal-resizer:hover{background:var(--resizer-hover)}
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
 
-        /* vertical resizer between editor column and preview */
-        .vertical-resizer{width:var(--resizer-size);background:var(--resizer-color);cursor:col-resize}
-        .vertical-resizer:hover{background:var(--resizer-hover)}
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-        /* Preview */
-        .preview-column{flex:1;min-width:300px;display:flex;flex-direction:column;background:#fff}
-        .preview-pane .pane-header{background:var(--bg-tertiary);color:var(--text-primary)}
-        iframe#preview{flex:1;border:0}
-        .loading{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--accent-color)}
+        .font-size-control label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
 
-        .actions{height:var(--actions-height);background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;gap:12px;border-top:1px solid var(--border-color)}
-        button{padding:8px 14px;border-radius:6px;border:1px solid var(--border-color);background:var(--bg-tertiary);color:var(--text-primary);cursor:pointer}
-        button:active{transform:translateY(1px)}
+        .font-size-control input {
+            width: 60px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
 
-        footer{height:var(--footer-height);background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;border-top:1px solid var(--border-color);color:var(--text-secondary)}
+        .theme-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-switch label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-tertiary);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .editor-column {
+            display: flex;
+            flex-direction: column;
+            width: 60%;
+            min-width: 280px;
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+        }
+
+        .editor-pane {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 0;
+            min-height: var(--min-pane-size);
+            overflow: hidden;
+        }
+
+        .pane-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .pane-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .pane-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pane-controls button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+        }
+
+        .pane-controls button:hover {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .code-editor {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: none;
+            resize: none;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            outline: none;
+        }
+
+        .horizontal-resizer {
+            height: var(--resizer-size);
+            background-color: var(--resizer-color);
+            cursor: row-resize;
+            transition: background-color 0.2s;
+        }
+
+        .horizontal-resizer:hover {
+            background-color: var(--resizer-hover);
+        }
+
+        .preview-column {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+        }
+
+        .preview-header {
+            padding: 8px 15px;
+            background-color: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        #preview {
+            flex: 1;
+            border: none;
+            background-color: white;
+        }
+
+        .vertical-resizer {
+            width: var(--resizer-size);
+            background-color: var(--resizer-color);
+            cursor: col-resize;
+            transition: background-color 0.2s;
+        }
+
+        .vertical-resizer:hover {
+            background-color: var(--resizer-hover);
+        }
+
+        .actions {
+            height: var(--actions-height);
+            background-color: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 0 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        button:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        footer {
+            height: var(--footer-height);
+            background-color: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            main {
+                flex-direction: column;
+            }
+
+            .editor-column {
+                width: 100%;
+                height: 60%;
+            }
+
+            .preview-column {
+                width: 100%;
+                height: 40%;
+            }
+
+            .vertical-resizer {
+                width: 100%;
+                height: var(--resizer-size);
+                cursor: row-resize;
+            }
+
+            header {
+                padding: 0 10px;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .controls {
+                gap: 10px;
+            }
+
+            .font-size-control label, .theme-switch label {
+                display: none;
+            }
+        }
+
+        /* Syntax highlighting base */
+        .code-editor {
+            tab-size: 4;
+            -moz-tab-size: 4;
+        }
+
+        /* Template selector */
+        .template-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .template-selector select {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--accent-color);
+        }
+
+        /* Resizing indicator */
+        .resizing {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
 
         /* Code modal for Markdown view */
-        .modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;padding:20px}
-        .modal .card{width:100%;max-width:1000px;background:var(--bg-secondary);border-radius:8px;padding:12px;border:1px solid var(--border-color);box-shadow:0 6px 24px rgba(0,0,0,0.6)}
-        .modal .card header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-        pre.code-block{max-height:60vh;overflow:auto;padding:12px;border-radius:6px}
-
-        /* Responsive behavior */
-        @media (max-width:768px){
-            main{flex-direction:column}
-            .editor-column{width:100%;height:60%;border-right:0}
-            .vertical-resizer{height:var(--resizer-size);width:100%;cursor:row-resize}
-            .preview-column{width:100%;height:40%}
-            .horizontal-resizer{height:8px}
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
         }
 
-        /* Accessibility */
-        .resizing{user-select:none}
+        .modal .card {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+        }
 
+        .modal .card header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        pre.code-block {
+            max-height: 60vh;
+            overflow: auto;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: var(--bg-primary);
+        }
     </style>
 </head>
 <body>
     <header>
         <div class="logo">Live HTML Editor & Previewer</div>
         <div class="controls">
-            <label for="font-size">Font Size:</label>
-            <input id="font-size" type="number" min="10" max="28" value="14">
-            <label for="templates">Template:</label>
-            <select id="templates">
-                <option value="blank">Blank</option>
-                <option value="simple">Simple Page</option>
-                <option value="blog">Blog Layout</option>
-                <option value="form">Contact Form</option>
-            </select>
+            <div class="font-size-control">
+                <label for="font-size">Font Size:</label>
+                <input type="number" id="font-size" min="10" max="24" value="14">
+            </div>
+            <div class="template-selector">
+                <label for="templates">Template:</label>
+                <select id="templates">
+                    <option value="blank">Blank</option>
+                    <option value="simple">Simple Page</option>
+                    <option value="blog">Blog Layout</option>
+                    <option value="form">Contact Form</option>
+                </select>
+            </div>
+            <div class="theme-switch">
+                <label for="theme-toggle">Light Mode</label>
+                <label class="switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
             <button id="view-markdown">View Code (Markdown)</button>
         </div>
     </header>
@@ -115,11 +463,11 @@
                         <button class="clear-btn" data-target="html">Clear</button>
                     </div>
                 </div>
-                <textarea id="html-editor" class="code-editor" placeholder="Enter your HTML here..."></textarea>
+                <textarea class="code-editor" id="html-editor" placeholder="Enter your HTML here..."></textarea>
             </div>
-
+            
             <div class="horizontal-resizer" data-resizer-for="pane-html"></div>
-
+            
             <div class="editor-pane" id="pane-css" data-lang="css">
                 <div class="pane-header">
                     <div class="pane-title">CSS</div>
@@ -127,11 +475,11 @@
                         <button class="clear-btn" data-target="css">Clear</button>
                     </div>
                 </div>
-                <textarea id="css-editor" class="code-editor" placeholder="Enter your CSS here..."></textarea>
+                <textarea class="code-editor" id="css-editor" placeholder="Enter your CSS here..."></textarea>
             </div>
-
+            
             <div class="horizontal-resizer" data-resizer-for="pane-css"></div>
-
+            
             <div class="editor-pane" id="pane-js" data-lang="js">
                 <div class="pane-header">
                     <div class="pane-title">JavaScript</div>
@@ -139,20 +487,20 @@
                         <button class="clear-btn" data-target="js">Clear</button>
                     </div>
                 </div>
-                <textarea id="js-editor" class="code-editor" placeholder="Enter your JavaScript here..."></textarea>
+                <textarea class="code-editor" id="js-editor" placeholder="Enter your JavaScript here..."></textarea>
             </div>
         </div>
-
-        <div class="vertical-resizer" id="editorPreviewResizer" aria-hidden="false"></div>
-
+        
+        <div class="vertical-resizer" id="editorPreviewResizer"></div>
+        
         <div class="preview-column" id="previewColumn">
-            <div class="pane-header preview-pane">
+            <div class="pane-header">
                 <div class="preview-header">Live Preview</div>
                 <div class="pane-controls">
                     <button id="refresh-preview">Refresh</button>
                 </div>
             </div>
-            <iframe id="preview" title="Live Preview"></iframe>
+            <iframe id="preview"></iframe>
             <div class="loading" id="preview-loading">Rendering...</div>
         </div>
     </main>
@@ -164,12 +512,11 @@
         <button id="reset-all">Reset</button>
     </div>
 
-    <footer>Dark mode default • © 2025 Live HTML Editor</footer>
+    <footer>
+        Dark mode default • © 2025 Live HTML Editor
+    </footer>
 
-    <!-- Prism (only used for Markdown/code viewing) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-
+    <!-- Code Modal -->
     <div class="modal" id="codeModal" role="dialog" aria-modal="true">
         <div class="card">
             <header>
@@ -182,271 +529,729 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Elements
-        const htmlEditor = document.getElementById('html-editor');
-        const cssEditor = document.getElementById('css-editor');
-        const jsEditor = document.getElementById('js-editor');
-        const preview = document.getElementById('preview');
-        const previewLoading = document.getElementById('preview-loading');
-        const copyButton = document.getElementById('copy-code');
-        const downloadButton = document.getElementById('download-html');
-        const saveButton = document.getElementById('save-local');
-        const resetButton = document.getElementById('reset-all');
-        const refreshButton = document.getElementById('refresh-preview');
-        const clearButtons = document.querySelectorAll('.clear-btn');
-        const fontSizeInput = document.getElementById('font-size');
-        const templateSelect = document.getElementById('templates');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const htmlEditor = document.getElementById('html-editor');
+            const cssEditor = document.getElementById('css-editor');
+            const jsEditor = document.getElementById('js-editor');
+            const preview = document.getElementById('preview');
+            const previewLoading = document.getElementById('preview-loading');
+            const copyButton = document.getElementById('copy-code');
+            const downloadButton = document.getElementById('download-html');
+            const saveButton = document.getElementById('save-local');
+            const resetButton = document.getElementById('reset-all');
+            const refreshButton = document.getElementById('refresh-preview');
+            const clearButtons = document.querySelectorAll('.clear-btn');
+            const fontSizeInput = document.getElementById('font-size');
+            const themeToggle = document.getElementById('theme-toggle');
+            const templateSelect = document.getElementById('templates');
+            
+            // New elements from the new code
+            const horizontalResizers = document.querySelectorAll('.horizontal-resizer');
+            const editorPreviewResizer = document.getElementById('editorPreviewResizer');
+            const editorColumn = document.getElementById('editorColumn');
+            const previewColumn = document.getElementById('previewColumn');
+            const viewMarkdownBtn = document.getElementById('view-markdown');
+            const codeModal = document.getElementById('codeModal');
+            const closeModal = document.getElementById('closeModal');
+            const modalCode = document.getElementById('modalCode');
+            
+            // State
+            let debounceTimer;
+            const DEBOUNCE_DELAY = 200;
+            let isResizing = false;
+            let currentResizer = null;
+            
+            // Templates
+            const templates = {
+                blank: {
+                    html: '',
+                    css: '',
+                    js: ''
+                },
+                simple: {
+                    html: `<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Page</title>
+</head>
+<body>
+    <h1>Welcome to My Page</h1>
+    <p>This is a simple HTML template.</p>
+    <ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+    </ul>
+</body>
+</html>`,
+                    css: `body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    line-height: 1.6;
+}
 
-        // Resizer elements
-        const horizontalResizers = document.querySelectorAll('.horizontal-resizer');
-        const editorPreviewResizer = document.getElementById('editorPreviewResizer');
-        const editorColumn = document.getElementById('editorColumn');
-        const previewColumn = document.getElementById('previewColumn');
+h1 {
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
 
-        // Modal
-        const viewMarkdownBtn = document.getElementById('view-markdown');
-        const codeModal = document.getElementById('codeModal');
-        const closeModal = document.getElementById('closeModal');
-        const modalCode = document.getElementById('modalCode');
-
-        // State
-        let debounceTimer;
-        const DEBOUNCE_DELAY = 180;
-
-        // Templates (same as before; kept minimal for brevity)
-        const templates = {
-            blank: { html: '', css: '', js: '' },
-            simple: {
-                html: `<!DOCTYPE html>\n<html>\n<head>\n    <title>Simple Page</title>\n</head>\n<body>\n    <h1>Welcome</h1>\n    <p>Simple template.</p>\n</body>\n</html>`,
-                css: `body{font-family:Arial, sans-serif;max-width:800px;margin:0 auto;padding:20px}`,
-                js: `// simple script`
-            },
-            blog: templates?.blog || { html: '', css: '', js: '' },
-            form: templates?.form || { html: '', css: '', js: '' }
-        };
-
-        // Initialize editors from localStorage or template
-        function initialize() {
-            const sHTML = localStorage.getItem('htmlEditor');
-            const sCSS = localStorage.getItem('cssEditor');
-            const sJS = localStorage.getItem('jsEditor');
-            if (sHTML || sCSS || sJS) {
-                htmlEditor.value = sHTML || '';
-                cssEditor.value = sCSS || '';
-                jsEditor.value = sJS || '';
-            } else {
-                loadTemplate('simple');
-            }
-
-            const fz = localStorage.getItem('editorFontSize') || 14;
-            fontSizeInput.value = fz;
-            applyFontSize(fz);
-
-            // initial preview
-            updatePreview();
-        }
-
-        function loadTemplate(name){
-            const t = templates[name] || templates.simple;
-            htmlEditor.value = t.html;
-            cssEditor.value = t.css;
-            jsEditor.value = t.js;
-            updatePreview();
-        }
-
-        // Build combined HTML
-        function buildCombined() {
-            const html = htmlEditor.value;
-            const css = cssEditor.value;
-            const js = jsEditor.value;
-            return `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<style>\n${css}\n</style>\n</head>\n<body>\n${html}\n<script>\n${js}\n<\/script>\n</body>\n</html>`;
-        }
-
-        // Update preview with debounce
-        function updatePreview(){
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                previewLoading.style.display = 'block';
-                const doc = preview.contentDocument || preview.contentWindow.document;
-                doc.open();
-                doc.write(buildCombined());
-                doc.close();
-                // small delay to hide loading for perceived rendering
-                setTimeout(()=> previewLoading.style.display = 'none', 220);
-            }, DEBOUNCE_DELAY);
-        }
-
-        // Copy / download / save
-        function copyCode(){
-            navigator.clipboard.writeText(buildCombined()).then(()=>{
-                const old = copyButton.textContent;
-                copyButton.textContent = 'Copied!';
-                setTimeout(()=> copyButton.textContent = old, 1500);
-            }).catch(err=>{alert('Copy failed');console.error(err)})
-        }
-
-        function downloadHTML(){
-            const blob = new Blob([buildCombined()],{type:'text/html'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');a.href=url;a.download='exported-page.html';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-        }
-
-        function saveLocal(){
-            localStorage.setItem('htmlEditor', htmlEditor.value);
-            localStorage.setItem('cssEditor', cssEditor.value);
-            localStorage.setItem('jsEditor', jsEditor.value);
-            const old = saveButton.textContent; saveButton.textContent='Saved!'; setTimeout(()=> saveButton.textContent = old,1200);
-        }
-
-        function resetAll(){
-            if(!confirm('Reset all editors?')) return;
-            htmlEditor.value='';cssEditor.value='';jsEditor.value='';
-            localStorage.removeItem('htmlEditor');localStorage.removeItem('cssEditor');localStorage.removeItem('jsEditor');
-            updatePreview();
-        }
-
-        // Apply font size
-        function applyFontSize(size){
-            [htmlEditor,cssEditor,jsEditor].forEach(e=>e.style.fontSize=`${size}px`);
-            localStorage.setItem('editorFontSize', size);
-        }
-
-        // Clear buttons
-        clearButtons.forEach(btn=>btn.addEventListener('click',()=>{
-            const t = btn.getAttribute('data-target');
-            if (t==='html') htmlEditor.value='';
-            if (t==='css') cssEditor.value='';
-            if (t==='js') jsEditor.value='';
-            updatePreview();
-        }))
-
-        // Events
-        htmlEditor.addEventListener('input', updatePreview);
-        cssEditor.addEventListener('input', updatePreview);
-        jsEditor.addEventListener('input', updatePreview);
-        copyButton.addEventListener('click', copyCode);
-        downloadButton.addEventListener('click', downloadHTML);
-        saveButton.addEventListener('click', saveLocal);
-        resetButton.addEventListener('click', resetAll);
-        refreshButton.addEventListener('click', updatePreview);
-        fontSizeInput.addEventListener('change', ()=> applyFontSize(fontSizeInput.value));
-        templateSelect.addEventListener('change', ()=> loadTemplate(templateSelect.value));
-
-        // --- Resizing system (robust, uses pointer events and flex-basis) ---
-
-        // Utility: clamp
-        function clamp(v,min,max){return Math.min(Math.max(v,min),max)}
-
-        // Vertical resizing between editor panes (horizontal-resizer moves rows)
-        horizontalResizers.forEach(resizer=>{
-            // resizer sits between prev and next editor-pane elements
-            resizer.addEventListener('pointerdown', (e)=>{
-                e.preventDefault();
-                resizer.setPointerCapture(e.pointerId);
-                document.body.classList.add('resizing');
-
-                const prev = resizer.previousElementSibling;
-                const next = resizer.nextElementSibling;
-                // compute initial heights
-                const prevRect = prev.getBoundingClientRect();
-                const nextRect = next.getBoundingClientRect();
-                const startY = e.clientY;
-                const prevHeight = prevRect.height;
-                const nextHeight = nextRect.height;
-
-                function onMove(ev){
-                    const delta = ev.clientY - startY;
-                    const newPrev = prevHeight + delta;
-                    const newNext = nextHeight - delta;
-                    const min = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--min-pane-size')) || 80;
-                    if (newPrev >= min && newNext >= min){
-                        prev.style.flex = `0 0 ${newPrev}px`;
-                        next.style.flex = `0 0 ${newNext}px`;
-                    }
-                }
-
-                function onUp(evt){
-                    resizer.releasePointerCapture(e.pointerId);
-                    document.body.classList.remove('resizing');
-                    window.removeEventListener('pointermove', onMove);
-                    window.removeEventListener('pointerup', onUp);
-                }
-
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', onUp);
-            });
+ul {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+}`,
+                    js: `// Simple JavaScript example
+document.addEventListener('DOMContentLoaded', function() {
+    const items = document.querySelectorAll('li');
+    items.forEach((item, index) => {
+        item.addEventListener('click', function() {
+            alert('You clicked item ' + (index + 1));
         });
-
-        // Horizontal resizing between editor column and preview (vertical resizer moves columns)
-        (function(){
-            const resizer = editorPreviewResizer;
-            resizer.addEventListener('pointerdown', (e)=>{
-                e.preventDefault();
-                resizer.setPointerCapture(e.pointerId);
-                document.body.classList.add('resizing');
-
-                const startX = e.clientX;
-                const editorRect = editorColumn.getBoundingClientRect();
-                const previewRect = previewColumn.getBoundingClientRect();
-                const editorWidth = editorRect.width;
-                const previewWidth = previewRect.width;
-                const parentRect = editorColumn.parentElement.getBoundingClientRect();
-                const parentWidth = parentRect.width;
-                const min = 300; // min width for either side
-
-                function onMove(ev){
-                    const delta = ev.clientX - startX;
-                    let newEditor = editorWidth + delta;
-                    let newPreview = previewWidth - delta;
-
-                    // clamp by min sizes and parent width
-                    newEditor = clamp(newEditor, min, parentWidth - min);
-                    newPreview = clamp(newPreview, min, parentWidth - min);
-
-                    // set as flex-basis percentages so responsive behavior remains intact
-                    const editorPct = (newEditor / parentWidth) * 100;
-                    const previewPct = (newPreview / parentWidth) * 100;
-                    editorColumn.style.flex = `0 0 ${editorPct}%`;
-                    previewColumn.style.flex = `0 0 ${previewPct}%`;
-                }
-
-                function onUp(ev){
-                    resizer.releasePointerCapture(e.pointerId);
-                    document.body.classList.remove('resizing');
-                    window.removeEventListener('pointermove', onMove);
-                    window.removeEventListener('pointerup', onUp);
-                }
-
-                window.addEventListener('pointermove', onMove);
-                window.addEventListener('pointerup', onUp);
-            });
-        })();
-
-        // --- Modal: show combined code as Markdown (fenced triple backticks) ---
-        function openModal(){
-            // Build a fenced markdown block with HTML content inside triple backticks
-            const combined = buildCombined();
-            const fenced = '```html\n' + combined.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '\n```';
-            modalCode.textContent = fenced;
-            // Prism highlight
-            if (window.Prism){
-                // mark as markup for better HTML highlighting inside the fenced block
-                modalCode.className = 'language-markup';
-                Prism.highlightElement(modalCode);
-            }
-            codeModal.style.display = 'flex';
-        }
-
-        function closeModalFn(){ codeModal.style.display = 'none'; }
-        viewMarkdownBtn.addEventListener('click', openModal);
-        closeModal.addEventListener('click', closeModalFn);
-        codeModal.addEventListener('click', (e)=>{ if (e.target===codeModal) closeModalFn(); });
-
-        // Initialize
-        initialize();
     });
+});`
+                },
+                blog: {
+                    html: `<!DOCTYPE html>
+<html>
+<head>
+    <title>My Blog</title>
+</head>
+<body>
+    <header>
+        <h1>My Blog</h1>
+        <nav>
+            <a href="#">Home</a>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+        </nav>
+    </header>
+    
+    <main>
+        <article>
+            <h2>Blog Post Title</h2>
+            <p class="date">Published on October 12, 2025</p>
+            <p>This is the content of my blog post...</p>
+        </article>
+        
+        <aside>
+            <h3>About Me</h3>
+            <p>Short bio or description here.</p>
+        </aside>
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 My Blog. All rights reserved.</p>
+    </footer>
+</body>
+</html>`,
+                    css: `* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f9f9f9;
+}
+
+header {
+    background: #2c3e50;
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin-left: 1rem;
+}
+
+main {
+    display: flex;
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+article {
+    flex: 2;
+    background: white;
+    padding: 2rem;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-right: 2rem;
+}
+
+.date {
+    color: #777;
+    font-style: italic;
+    margin-bottom: 1rem;
+}
+
+aside {
+    flex: 1;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    background: #34495e;
+    color: white;
+    margin-top: 2rem;
+}`,
+                    js: `// Blog functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add current year to footer
+    const year = new Date().getFullYear();
+    const footer = document.querySelector('footer p');
+    if (footer) {
+        footer.innerHTML = footer.innerHTML.replace('2025', year);
+    }
+    
+    // Add active class to current page in navigation
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const navLinks = document.querySelectorAll('nav a');
+    
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') === currentPage) {
+            link.classList.add('active');
+        }
+    });
+});`
+                },
+                form: {
+                    html: `<!DOCTYPE html>
+<html>
+<head>
+    <title>Contact Form</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Contact Us</h1>
+        <form id="contact-form">
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="subject">Subject:</label>
+                <select id="subject" name="subject">
+                    <option value="general">General Inquiry</option>
+                    <option value="support">Technical Support</option>
+                    <option value="feedback">Feedback</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" rows="5" required></textarea>
+            </div>
+            
+            <button type="submit">Send Message</button>
+        </form>
+        
+        <div id="form-message"></div>
+    </div>
+</body>
+</html>`,
+                    css: `body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 500px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #555;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+button {
+    width: 100%;
+    padding: 0.75rem;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+#form-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+    text-align: center;
+    display: none;
+}
+
+.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}`,
+                    js: `// Form handling
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('contact-form');
+    const messageDiv = document.getElementById('form-message');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Simple validation
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const message = document.getElementById('message').value;
+        
+        if (!name || !email || !message) {
+            showMessage('Please fill in all required fields.', 'error');
+            return;
+        }
+        
+        // In a real application, you would send the data to a server here
+        // For demo purposes, we'll just show a success message
+        showMessage('Thank you for your message! We will get back to you soon.', 'success');
+        form.reset();
+    });
+    
+    function showMessage(text, type) {
+        messageDiv.textContent = text;
+        messageDiv.className = type;
+        messageDiv.style.display = 'block';
+        
+        // Hide message after 5 seconds
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 5000);
+    }
+});`
+                }
+            };
+            
+            // Initialize the editor with saved or template content
+            function initializeEditor() {
+                // Try to load saved content from localStorage
+                const savedHTML = localStorage.getItem('htmlEditor');
+                const savedCSS = localStorage.getItem('cssEditor');
+                const savedJS = localStorage.getItem('jsEditor');
+                
+                if (savedHTML || savedCSS || savedJS) {
+                    htmlEditor.value = savedHTML || '';
+                    cssEditor.value = savedCSS || '';
+                    jsEditor.value = savedJS || '';
+                } else {
+                    // Load the simple template by default
+                    loadTemplate('simple');
+                }
+                
+                // Apply saved font size
+                const savedFontSize = localStorage.getItem('editorFontSize');
+                if (savedFontSize) {
+                    fontSizeInput.value = savedFontSize;
+                    applyFontSize(savedFontSize);
+                }
+                
+                // Apply saved theme
+                const savedTheme = localStorage.getItem('editorTheme');
+                if (savedTheme === 'light') {
+                    themeToggle.checked = true;
+                    toggleTheme();
+                }
+                
+                // Initial preview update
+                updatePreview();
+            }
+            
+            // Load a template
+            function loadTemplate(templateName) {
+                const template = templates[templateName];
+                if (template) {
+                    htmlEditor.value = template.html;
+                    cssEditor.value = template.css;
+                    jsEditor.value = template.js;
+                    updatePreview();
+                }
+            }
+            
+            // Update the preview iframe
+            function updatePreview() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    previewLoading.style.display = 'block';
+                    
+                    const html = htmlEditor.value;
+                    const css = cssEditor.value;
+                    const js = jsEditor.value;
+                    
+                    const previewDocument = preview.contentDocument || preview.contentWindow.document;
+                    
+                    previewDocument.open();
+                    previewDocument.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <style>${css}</style>
+                        </head>
+                        <body>
+                            ${html}
+                            <script>${js}<\/script>
+                        </body>
+                        </html>
+                    `);
+                    previewDocument.close();
+                    
+                    setTimeout(() => {
+                        previewLoading.style.display = 'none';
+                    }, 300);
+                }, DEBOUNCE_DELAY);
+            }
+            
+            // Build combined code
+            function buildCombined() {
+                const html = htmlEditor.value;
+                const css = cssEditor.value;
+                const js = jsEditor.value;
+                
+                return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>${css}</style>
+</head>
+<body>
+    ${html}
+    <script>${js}<\/script>
+</body>
+</html>`;
+            }
+            
+            // Copy the combined code to clipboard
+            function copyCode() {
+                navigator.clipboard.writeText(buildCombined())
+                    .then(() => {
+                        const originalText = copyButton.textContent;
+                        copyButton.textContent = 'Copied!';
+                        setTimeout(() => {
+                            copyButton.textContent = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy code: ', err);
+                        alert('Failed to copy code to clipboard');
+                    });
+            }
+            
+            // Download the combined code as HTML file
+            function downloadHTML() {
+                const blob = new Blob([buildCombined()], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'exported-page.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            // Save code to localStorage
+            function saveToLocal() {
+                localStorage.setItem('htmlEditor', htmlEditor.value);
+                localStorage.setItem('cssEditor', cssEditor.value);
+                localStorage.setItem('jsEditor', jsEditor.value);
+                
+                const originalText = saveButton.textContent;
+                saveButton.textContent = 'Saved!';
+                setTimeout(() => {
+                    saveButton.textContent = originalText;
+                }, 2000);
+            }
+            
+            // Reset all editors
+            function resetAll() {
+                if (confirm('Are you sure you want to reset all editors? This cannot be undone.')) {
+                    htmlEditor.value = '';
+                    cssEditor.value = '';
+                    jsEditor.value = '';
+                    localStorage.removeItem('htmlEditor');
+                    localStorage.removeItem('cssEditor');
+                    localStorage.removeItem('jsEditor');
+                    updatePreview();
+                }
+            }
+            
+            // Apply font size to all editors
+            function applyFontSize(size) {
+                const editors = document.querySelectorAll('.code-editor');
+                editors.forEach(editor => {
+                    editor.style.fontSize = `${size}px`;
+                });
+                localStorage.setItem('editorFontSize', size);
+            }
+            
+            // Toggle between dark and light theme
+            function toggleTheme() {
+                if (themeToggle.checked) {
+                    // Light theme
+                    document.documentElement.style.setProperty('--bg-primary', '#ffffff');
+                    document.documentElement.style.setProperty('--bg-secondary', '#f5f5f5');
+                    document.documentElement.style.setProperty('--bg-tertiary', '#e0e0e0');
+                    document.documentElement.style.setProperty('--text-primary', '#333333');
+                    document.documentElement.style.setProperty('--text-secondary', '#666666');
+                    document.documentElement.style.setProperty('--border-color', '#cccccc');
+                    document.documentElement.style.setProperty('--resizer-color', '#dddddd');
+                    localStorage.setItem('editorTheme', 'light');
+                } else {
+                    // Dark theme (default)
+                    document.documentElement.style.setProperty('--bg-primary', '#1a1a1a');
+                    document.documentElement.style.setProperty('--bg-secondary', '#2d2d2d');
+                    document.documentElement.style.setProperty('--bg-tertiary', '#3d3d3d');
+                    document.documentElement.style.setProperty('--text-primary', '#f0f0f0');
+                    document.documentElement.style.setProperty('--text-secondary', '#aaaaaa');
+                    document.documentElement.style.setProperty('--border-color', '#444');
+                    document.documentElement.style.setProperty('--resizer-color', '#555');
+                    localStorage.setItem('editorTheme', 'dark');
+                }
+            }
+            
+            // New resizing system from the new code
+            function initResizablePanes() {
+                // Utility: clamp
+                function clamp(v, min, max) {
+                    return Math.min(Math.max(v, min), max);
+                }
+                
+                // Horizontal resizing between editor panes
+                horizontalResizers.forEach(resizer => {
+                    resizer.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        resizer.setPointerCapture(e.pointerId);
+                        document.body.classList.add('resizing');
+                        
+                        const prev = resizer.previousElementSibling;
+                        const next = resizer.nextElementSibling;
+                        
+                        const prevRect = prev.getBoundingClientRect();
+                        const nextRect = next.getBoundingClientRect();
+                        const startY = e.clientY;
+                        const prevHeight = prevRect.height;
+                        const nextHeight = nextRect.height;
+                        
+                        function onMove(ev) {
+                            const delta = ev.clientY - startY;
+                            const newPrev = prevHeight + delta;
+                            const newNext = nextHeight - delta;
+                            const min = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--min-pane-size')) || 80;
+                            
+                            if (newPrev >= min && newNext >= min) {
+                                prev.style.flex = `0 0 ${newPrev}px`;
+                                next.style.flex = `0 0 ${newNext}px`;
+                            }
+                        }
+                        
+                        function onUp(evt) {
+                            resizer.releasePointerCapture(e.pointerId);
+                            document.body.classList.remove('resizing');
+                            window.removeEventListener('pointermove', onMove);
+                            window.removeEventListener('pointerup', onUp);
+                        }
+                        
+                        window.addEventListener('pointermove', onMove);
+                        window.addEventListener('pointerup', onUp);
+                    });
+                });
+                
+                // Vertical resizing between editor and preview
+                (function() {
+                    const resizer = editorPreviewResizer;
+                    resizer.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        resizer.setPointerCapture(e.pointerId);
+                        document.body.classList.add('resizing');
+                        
+                        const startX = e.clientX;
+                        const editorRect = editorColumn.getBoundingClientRect();
+                        const previewRect = previewColumn.getBoundingClientRect();
+                        const editorWidth = editorRect.width;
+                        const previewWidth = previewRect.width;
+                        const parentRect = editorColumn.parentElement.getBoundingClientRect();
+                        const parentWidth = parentRect.width;
+                        const min = 300; // min width for either side
+                        
+                        function onMove(ev) {
+                            const delta = ev.clientX - startX;
+                            let newEditor = editorWidth + delta;
+                            let newPreview = previewWidth - delta;
+                            
+                            // clamp by min sizes and parent width
+                            newEditor = clamp(newEditor, min, parentWidth - min);
+                            newPreview = clamp(newPreview, min, parentWidth - min);
+                            
+                            // set as flex-basis percentages so responsive behavior remains intact
+                            const editorPct = (newEditor / parentWidth) * 100;
+                            const previewPct = (newPreview / parentWidth) * 100;
+                            editorColumn.style.flex = `0 0 ${editorPct}%`;
+                            previewColumn.style.flex = `0 0 ${previewPct}%`;
+                        }
+                        
+                        function onUp(ev) {
+                            resizer.releasePointerCapture(e.pointerId);
+                            document.body.classList.remove('resizing');
+                            window.removeEventListener('pointermove', onMove);
+                            window.removeEventListener('pointerup', onUp);
+                        }
+                        
+                        window.addEventListener('pointermove', onMove);
+                        window.addEventListener('pointerup', onUp);
+                    });
+                })();
+            }
+            
+            // Modal: show combined code as Markdown
+            function openModal() {
+                // Build a fenced markdown block with HTML content inside triple backticks
+                const combined = buildCombined();
+                const fenced = '```html\n' + combined.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '\n```';
+                modalCode.textContent = fenced;
+                
+                // Prism highlight
+                if (window.Prism) {
+                    // mark as markup for better HTML highlighting inside the fenced block
+                    modalCode.className = 'language-markup';
+                    Prism.highlightElement(modalCode);
+                }
+                
+                codeModal.style.display = 'flex';
+            }
+            
+            function closeModalFn() { 
+                codeModal.style.display = 'none'; 
+            }
+            
+            // Set up event listeners
+            function setupEventListeners() {
+                // Editor input events with debouncing
+                htmlEditor.addEventListener('input', updatePreview);
+                cssEditor.addEventListener('input', updatePreview);
+                jsEditor.addEventListener('input', updatePreview);
+                
+                // Button events
+                copyButton.addEventListener('click', copyCode);
+                downloadButton.addEventListener('click', downloadHTML);
+                saveButton.addEventListener('click', saveToLocal);
+                resetButton.addEventListener('click', resetAll);
+                refreshButton.addEventListener('click', updatePreview);
+                
+                // Clear button events
+                clearButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const target = this.getAttribute('data-target');
+                        if (target === 'html') htmlEditor.value = '';
+                        else if (target === 'css') cssEditor.value = '';
+                        else if (target === 'js') jsEditor.value = '';
+                        updatePreview();
+                    });
+                });
+                
+                // Control events
+                fontSizeInput.addEventListener('change', function() {
+                    applyFontSize(this.value);
+                });
+                
+                themeToggle.addEventListener('change', toggleTheme);
+                
+                templateSelect.addEventListener('change', function() {
+                    loadTemplate(this.value);
+                });
+                
+                // Modal events
+                viewMarkdownBtn.addEventListener('click', openModal);
+                closeModal.addEventListener('click', closeModalFn);
+                codeModal.addEventListener('click', (e) => { 
+                    if (e.target === codeModal) closeModalFn(); 
+                });
+            }
+            
+            // Initialize the application
+            function init() {
+                initializeEditor();
+                initResizablePanes();
+                setupEventListeners();
+            }
+            
+            // Start the application
+            init();
+        });
     </script>
 </body>
 </html>
